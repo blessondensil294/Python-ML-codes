@@ -1,5 +1,9 @@
 Data Science Python Codes Cheatsheet
 
+combine = [train_df, test_df]
+for dataset in combine:
+    dataset['Title'] = dataset.Name.str.extract(' ([A-Za-z]+)\.', expand=False)
+
 #-------------------------------------------------------------------------------------------------------------------------------------------------
 #Normalize or scale data
 1) Log normalization for huge variation in data
