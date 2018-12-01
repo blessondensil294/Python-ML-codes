@@ -21,8 +21,8 @@ np.std(x_scaled)
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------
 #Imput missing data
-from sklearn.preprocessing import Imputer
-imp=Imputer(missing_value = 'NAN', strfy = 'mean', axis=0)
+from sklearn.impute import SimpleImputer
+imp = SimpleImputer(missing_values='NAN', strategy = 'mean')
 
 imp.fit(X)
 X = imp.fit_transform(X)
