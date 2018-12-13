@@ -1,0 +1,16 @@
+#Logistic Regression
+
+#Package
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+
+#model
+logreg = LogisticRegression(random_state=1)
+logreg.fit(X_train, y_train)
+
+#Predicting
+y_pred = logreg.predict(X_test)
+print('Accuracy of logistic regression classifier on test set: {:.2f}'.format(logreg.score(X_test, y_test)))
+
+#To plot the decision boundary
+plot_labeled_decision_regions(X_test, y_test, logreg)

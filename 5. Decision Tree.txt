@@ -1,0 +1,78 @@
+Decision Tree Classifier
+#import the model
+from sklearn.tree import DecisionTreeClassifier
+DT = DecisionTreeClassifier(criterion='gini', max_depth=2, random_state=1) ## criterion='entropy'
+
+# Define params_dt
+params_dt = {
+             'max_depth': [2, 3, 4],
+             'min_samples_leaf': [0.12, 0.14, 0.16, 0.18]
+            }
+# Import GridSearchCV
+from sklearn.model_selection import GridSearchCV
+
+# Instantiate grid_dt
+grid_dt = GridSearchCV(estimator=dt, param_grid=params_dt, scoring='roc_auc', cv=5, n_jobs=-1)
+
+ # Import roc_auc_score from sklearn.metrics 
+from sklearn.metrics import roc_auc_score
+
+# Extract the best estimator
+best_model = grid_dt.best_estimator_
+
+# Predict the test set probabilities of the positive class
+y_pred_proba = best_model.predict_proba(X_test)[:,1]
+
+# Compute test_roc_auc
+test_roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Print test_roc_auc
+print('Test set ROC AUC score: {:.3f}'.format(test_roc_auc))
+
+#Fitting the model
+dt.fit(x_test, y_test)
+
+#Predicting the model
+y_pred = dt.predict(x_test)	
+
+#Evaluate the test set accuracy
+accuracy_score(y_test, y_pred)
+print("Test set accuracy: {:.2f}".format(acc))
+
+#To plot the decision boundary
+plot_labeled_decision_regions(X_test, y_test, dt)
+
+#Decision Tree Regression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error as MSE
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.2, random_state = 222, stratify=23)
+
+from sklearn.model_selection import cross_val_score
+SEED = 123
+
+dt = DecisionTreeRegressor(max_depth=4, min_samples_leaf=0.1, random_state=SEED)
+#evaluate the list of MSE obtained by 10-fold CV
+#set the n_jobs =-1 to exploit all the CPU cores in computation
+MSE_CV = - cross_val_score(dt, x_train, y_train, cv=10, scoring='neg_mean_squared_error', n_jobs=-1)
+
+#Fitting the model
+dt.fit(x_test, y_test)
+
+#Predicting the model
+y_pred = dt.predict(x_test)	
+
+#CV MSE
+print('CV MSE: ' MSE_CV.mean())
+
+#Training set MSE
+print('Train MSE', MSE(y_train, y_pred))
+
+#Tesst set MSE
+print('Test MSE', MSE(y_test, y_pred))
+
+#Evaluating the model
+#RMSE
+from sklearn import metrics
+print('RMSE: ', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))

@@ -1,0 +1,16 @@
+Schostic Gradient Decent Model for Logistic and SVM for larger dataset
+
+#model
+from sklearn.linear_model import SGDClassifier
+logreg = SGDClassifier(loss='log')
+linsvm = SGDClassifier(loss='hinge')
+
+#Hyperparameter
+model = SGDClassifier(random_state = 0)
+parameter = {'alpha':[0.00001, 0.0001, 0.001, 0.01, 0.1, 1], 'loss': ['log', 'hinge'], 'penalty': ['l1', 'l2']}
+
+search = GridSearchCV(model, parameter, cv=10)
+search.fit(x_train, y_train)
+search.best_params_
+search.best_score_
+search.score(x_test, y_test)
