@@ -1,0 +1,25 @@
+Python Basics
+
+print("Hello World!")
+
+a=30
+print("Number is " + str(a))
+print(a)
+print a
+
+String Manipulation
+
+Name="Blesson"
+
+name.upper()
+name.lower()
+
+name.upper().isupper()
+
+len(name)
+
+name[0] - B
+name[-1] - n
+
+name.index("1") - l
+name.replace("Bless", "Cat")
