@@ -1,0 +1,1448 @@
+building chatbots in python
+
+Introduction to conversational software
+
+Chitchat
+Now you're going to leave simple EchoBot behind and create a bot which can answer simple questions such as "What's your name?" and "What's today's weather?"
+
+You'll use a dictionary with these questions as keys, and the correct responses as values.
+
+This means the bot will only respond correctly if the message matches exactly, which is a big limitation. In later exercises you will create much more robust solutions.
+
+The send_message function has already been defined for you, as well as the bot_template and user_template variables.
+
+
+# Define variables
+name = "Greg"
+weather = "cloudy"
+
+# Define a dictionary with the predefined responses
+responses = {
+  "what's your name?": "my name is {0}".format(name),
+  "what's today's weather?": "the weather is {0}".format(weather),
+  "default": "default message"
+}
+
+# Return the matching response if there is one, default otherwise
+def respond(message):
+    # Check if the message is in the responses
+    if message in responses:
+        # Return the matching message
+        bot_message = responses[message]
+    else:
+        # Return the "default" message
+        bot_message = responses["default"]
+    return bot_message
+
+	
+
+Adding variety
+It can get a little boring hearing the same old answers over and over. In this exercise, you'll add some variation. If you ask your bot how it's feeling, it may equally well respond with "oh I'm great!" as with "I'm very sad today".
+
+Here, you'll use the random module - specifically random.choice(ls) - which randomly selects an element from a list ls.
+
+A dictionary called responses, which maps each message to a list of possible responses, has been defined for you.
+
+# Import the random module
+import random
+
+name = "Greg"
+weather = "cloudy"
+
+# Define a dictionary containing a list of responses for each message
+responses = {
+  "what's your name?": [
+      "my name is {0}".format(name),
+      "they call me {0}".format(name),
+      "I go by {0}".format(name)
+   ],
+  "what's today's weather?": [
+      "the weather is {0}".format(weather),
+      "it's {0} today".format(weather)
+    ],
+  "default": ["default message"]
+}
+
+# Use random.choice() to choose a matching response
+def respond(message):
+    # Check if the message is in the responses
+    if message in responses:
+        # Return a random matching response
+        bot_message = random.choice(responses[message])
+    else:
+        # Return a random "default" response
+        bot_message = random.choice(responses["default"])
+    return bot_message
+	
+	
+Text Munging with regular expressions
+Text processing with regular expressions
+
+Pattern matching
+In [1]: import re
+In [2]: pattern = "do you remember .*"
+In [3]: message = "do you remember when you ate strawberries in the garden"
+In [4]: match = re.search(pattern, message)
+In [5]: if match:
+      :     print("string matches!")
+Out[5]: string matches!
+
+Extracting key phrases
+In [1]: import re
+
+In [2]: pattern = "if (.*)"
+In [3]: message = "what would happen if bots took over the world"
+
+In [4]: match = re.search(pattern, message)
+In [5]: match.group(0)
+Out[5]: 'what would happen if bots took over the world'
+In [6]: match.group(1)
+Out[6]: 'bots took over the world'
+
+Grammatical transformation
+In [1]: import re
+
+In [2]: def swap_pronouns(phrase):
+   ...:     if 'I' in phrase:
+   ...:         return re.sub('I', 'you', phrase)
+   ...:     if 'my' in phrase:
+   ...:         return re.sub('my', 'your', phrase)
+   ...:
+   ...:     else:
+   ...:         return phrase
+In [3]: swap_pronouns("I walk my dog")
+Out[3]: 'You walk your dog'
+
+Putting it all together
+In [1]: pattern = 'do you remember (.*)'
+
+In [2]: message = 'do you remember when you ate strawberries in the garden'
+In [3]: phrase = pattern.search(pattern, message).group(1)
+
+In [4]: phrase
+Out[4]: 'when you ate strawberries in the garden'
+In [5]: response = choose_response(pattern)
+
+In [6]: response
+Out[6]: 'how could I forget {}'
+In [7]: phrase = swap_pronouns(phrase)
+
+In [8]: phrase
+Out[8]: 'when I ate strawberries in the garden'
+In [9]: response.format(phrase)
+Out[9]: 'how could I forget when I ate strawberries in the garden'
+
+
+ELIZA II: Extracting key phrases
+The really clever thing about ELIZA is the way the program appears to understand what you told it, by occasionally including phrases uttered by the user in its responses.
+
+In this exercise, you will match messages against some common patterns and extract phrases using re.search(). A dictionary called rules has already been defined, which matches the following patterns:
+
+"do you think (.*)"
+"do you remember (.*)"
+"I want (.*)"
+"if (.*)"
+Inspect this dictionary in the Shell before starting the exercise.
+
+# Define match_rule()
+def match_rule(rules, message):
+    response, phrase = "default", None
+    
+    # Iterate over the rules dictionary
+    for pattern, responses in rules.items():
+        # Create a match object
+        match = re.search(pattern, message)
+        if match is not None:
+            # Choose a random response
+            response = random.choice(responses)
+            if '{0}' in response:
+                phrase = match.group(1)
+    # Return the response and phrase
+    return response, phrase
+
+# Test match_rule
+print(match_rule(rules, "do you remember your last birthday"))
+
+
+ELIZA III: Pronouns
+To make responses grammatically coherent, you'll want to transform the extracted phrases from first to second person and vice versa. In English, conjugating verbs is easy, and simply swapping "I" and 'you', "my" and "your" works in most cases.
+
+In this exercise, you'll define a function called replace_pronouns() which uses re.sub() to map "me" and "my" to "you" and "your" (and vice versa) in a string.
+
+
+# Define replace_pronouns()
+def replace_pronouns(message):
+
+    message = message.lower()
+    if 'me' in message:
+        # Replace 'me' with 'you'
+        return re.sub('me', 'you', message)
+    if 'my' in message:
+        # Replace 'my' with 'your'
+        return re.sub('my', 'your', message)
+    if 'your' in message:
+        # Replace 'your' with 'my'
+        return re.sub('your', 'my', message)
+    if 'you' in message:
+        # Replace 'you' with 'me'
+        return re.sub('you', 'me', message)
+
+    return message
+
+print(replace_pronouns("my last birthday"))
+print(replace_pronouns("when you went to Florida"))
+print(replace_pronouns("I had my own castle"))
+
+
+ELIZA IV: Putting it all together
+Now you're going to put it all together and experience the magic! The match_rule(), send_message(), and replace_pronouns() functions have already been defined, and the rules dictionary is available in your workspace.
+
+Your job here is to write a function called respond() with a single argument message which creates an appropriate response to be handled by send_message.
+
+
+# Define respond()
+def respond(message):
+    # Call match_rule
+    response, phrase = match_rule(rules, message)
+    if '{0}' in response:
+        # Replace the pronouns in the phrase
+        phrase = replace_pronouns(phrase)
+        # Include the phrase in the response
+        response = response.format(phrase)
+    return response
+
+# Send the messages
+send_message("do you remember your last birthday")
+send_message("do you think humans should be worried about AI")
+send_message("I want a robot friend")
+send_message("what if you could be anything you wanted")
+
+
+Understanding intents and entities
+
+
+Intents
+A restaurant_search can be expressed many different ways:
+
+I'm hungry
+Show me good pizza spots
+I want to take my boyfriend out for sushi
+
+
+Regular expressions to recognize intents and exercises
+Simpler than machine learning approaches
+Highly computationally efficient
+Drawback:
+Debugging regular expressions can become difficult
+
+Using regular expressions
+'|' is equivalent to OR
+\b matches the beginning or end of a word
+ In [1]: re.search(r"(hello|hey|hi)", "hey there!") is not None
+Out[1]: True
+In [2]: re.search(r"(hello|hey|hi)", "which one?") is not None
+Out[2]: True
+In [3]: re.search(r"\b(hello|hey|hi)\b", "hey there!") is not None
+Out[3]: True
+
+In [4]: re.search(r"\b(hello|hey|hi)\b", "which one?") is not None
+Out[4]: False
+
+
+Using regex for entity recognition
+In [1]: pattern = re.compile('[A-Z]{1}[a-z]*')
+In [2]: message = """
+Mary is a friend of mine,
+she studied at Oxford and
+now works at Google"""
+In [3]: pattern.findall(message)
+Out[3]: ['Mary', 'Oxford', 'Google']
+
+
+Intent classification with regex I
+You'll begin by implementing a very simple way to recognise intents - just looking for the presence of keywords.
+
+A dictionary keywords has already been defined. It has the intents "greet", "goodbye", and "thankyou" as keys, and lists of keywords as the corresponding values. For example, keywords["greet"] is set to "["hello","hi","hey"].
+
+Also defined is a second dictionary, responses, indicating how the bot should respond to each of these intents. It also has a default response with the key "default".
+
+The function send_message(), along with the bot and user templates have also already been defined. Your job in this exercise is to create a dictionary with the intents as keys and regex objects as values.
+
+
+# Define a dictionary of patterns
+patterns = {}
+
+# Iterate over the keywords dictionary
+for intent, keys in keywords.items():
+    # Create regular expressions and compile them into pattern objects
+    patterns[intent] = re.compile('|'.join(keys))
+
+# Print the patterns
+print(patterns)
+
+
+Intent classification with regex II
+With your patterns dictionary created, it's now time to define a function to find the intent of a message.
+
+# Define a function to find the intent of a message
+def match_intent(message):
+    matched_intent = None
+    for intent, pattern in patterns.items():
+        # Check if the pattern occurs in the message 
+        if pattern.search(message):
+            matched_intent = intent
+    return matched_intent
+
+# Define a respond function
+def respond(message):
+    # Call the match_intent function
+    intent = match_intent(message)
+    # Fall back to the default response
+    key = "default"
+    if intent in responses:
+        key = intent
+    return responses[key]
+
+# Send messages
+send_message("hello!")
+send_message("bye byeee")
+send_message("thanks very much!")
+
+
+Entity extraction with regex
+Now you'll use another simple method, this time for finding a person's name in a sentence such as "hello, my name is David Copperfield".
+
+You'll look for the keywords "name" or "call(ed)", and find capitalized words using regex and assume those are names. Your job in this exercise is to define a find_name() function to do this.
+
+
+# Define find_name()
+def find_name(message):
+    name = None
+    # Create a pattern for checking if the keywords occur
+    name_keyword = re.compile('name|call')
+    # Create a pattern for finding capitalized words
+    name_pattern = re.compile('[A-Z]{1}[a-z]*')
+    if name_keyword.search(message):
+        # Get the matching words in the string
+        name_words = name_pattern.findall(message)
+        if len(name_words) > 0:
+            # Return the name if the keywords are present
+            name = ' '.join(name_words)
+    return name
+
+# Define respond()
+def respond(message):
+    # Find the name
+    name = find_name(message)
+    if name is None:
+        return "Hi there!"
+    else:
+        return "Hello, {0}!".format(name)
+
+# Send messages
+send_message("my name is David Copperfield")
+send_message("call me Ishmael")
+send_message("People call me Cassandra")
+
+
+Word Vectors
+
+Machine learning
+Programs which can get better at a task by being exposed to more data
+Identifying which intent a user message belongs to
+
+Vector representations
+"can you help me please?"
+
+Units	examples	vectors
+characters	"c", "a", "n", ...	v_c, v_a, v_n, ...
+words	"can", "you", ...	v_{can}, v_{you}, ...
+sentences	"can you help..."	v_{can you help ...}
+
+
+Word vectors
+Context	Candidates
+let's meet at the ___ tomorrow	office, gym, park, beach, party
+I love going to the ___ to play with the dogs	beach, park
+Word vectors try to represent meaning of words
+Words which appear in similar context have similar vectors
+
+
+Word vectors are computationally intensive
+Training word vectors requires a lot of data
+High quality word vectors are available for anyone to use
+GloVe algorithm
+	Cousin of word2vec
+spaCy
+
+
+In [1]: import spacy
+In [2]: nlp = spacy.load('en')
+In [3]: nlp.vocab.vectors_length
+Out[3]: 300
+In [4]: doc = nlp('hello can you help me?')
+In [5]: for token in doc:
+   ...:     print("{} : {}".format(token, token.vector[:3]))
+hello : [ 0.25233001  0.10176    -0.67484999]
+can : [-0.23857     0.35457    -0.30219001]
+you : [-0.11076     0.30785999 -0.51980001]
+help : [-0.29370001  0.32253    -0.44779   ]
+me : [-0.15396     0.31894001 -0.54887998]
+? : [-0.086864    0.19160999  0.10915   ]
+
+
+Similarity
+Direction of vectors matters
+"Distance" between words = angle between the vectors
+Cosine similarity
+1: If vectors point in the same direction
+0: If they are perpendicular
+-1: If they point in opposite directions
+
+
+.similarity()
+
+"can" and "cat" are spelled similarly but have low similarity
+but "cat" and "dog" have high similarity
+
+
+ In [1]: import spacy
+
+In [2]: nlp = spacy.load('en')
+In [3]: doc = nlp("cat")
+In [4]: doc.similarity(nlp("can"))
+Out[4]: 0.30165292161215396
+
+In [5]: doc.similarity(nlp("dog"))
+Out[5]: 0.80168555173294953
+
+
+word vectors with spaCy
+In this exercise you'll get your first experience with word vectors! You're going to use the ATIS dataset, which contains thousands of sentences from real people interacting with a flight booking system.
+
+The user utterances are available in the list sentences, and the corresponding intents in labels.
+
+Your job is to create a 2D array X with as many rows as there are sentences in the dataset, where each row is a vector describing that sentence.
+
+
+# Load the spacy model: nlp
+nlp = spacy.load('en')
+
+# Calculate the length of sentences
+n_sentences = len(sentences)
+
+# Calculate the dimensionality of nlp
+embedding_dim = nlp.vocab.vectors_length
+
+# Initialize the array with zeros: X
+X = np.zeros((n_sentences, embedding_dim))
+
+# Iterate over the sentences
+for idx, sentence in enumerate(sentences):
+    # Pass each each sentence to the nlp object to create a document
+    doc = nlp(sentence)
+    # Save the document's .vector attribute to the corresponding row in X
+    X[idx, :] = doc.vector
+	
+
+Intents and classification
+
+
+ATIS dataset
+Thousands of sentences with labeled intents and entities
+Collected from a real flight booking service
+Intents like
+atis_flight
+atis_airfare
+
+
+ATIS dataset II
+In [1]: sentences_train[:2]
+Out[1]: [
+  "i want to fly from boston at 838 am 
+  and arrive in denver at 1110 in the morning",
+  "what flights are available from pittsburgh 
+  to baltimore on thursday morning"
+]
+
+In [2]: labels_train[:2]
+Out[2]: [
+  "atis_flight",
+  "atis_flight"
+]
+In [3]: import numpy as np
+
+In [4]: X_train_shape = (len(sentences_train),nlp.vocab.vectors_length)
+In [5]: X_train = np.zeros(X_train_shape)
+In [6]: for sentence in sentences_train:
+   ...:     X_train[i,:] = nlp(sentence).vector
+   
+   
+Nearest neighbor classification
+Need training data
+Sentences which we've already labeled with their intents
+Simplest solution:
+Look for the labeled example that's most similar
+Use its intent as a best guess
+Nearest neighbor classification
+
+Nearest neighbor classification in scikit-learn
+In [1]: from sklearn.metrics.pairwise import cosine_similarity
+
+In [2]: test_message = """
+i would like to find a flight from charlotte
+to las vegas that makes a stop in st. louis"""
+
+In [3]: test_x = nlp(test_message).vector
+In [4]: scores = [
+   ...:     cosine_similarity(X[i,:], test_x) 
+   ...:     for i in range(len(sentences_train)
+   ...: ]
+In [5]: labels_train[np.argmax(scores)]
+Out[5]: 'atis_flight'
+
+
+Support vector machines
+Nearest neighbours is very simple - we can do better
+SVM / SVC: support vector machine / classifier
+ In [1]: from sklearn.svm import SVC
+In [2]: clf = SVC()
+In [3]: clf.fit(X_train, y_train)
+In [4]: y_pred = clf.predict(X_test)
+
+
+
+Intent classification with sklearn
+An array X containing vectors describing each of the sentences in the ATIS dataset has been created for you, along with a 1D array y containing the labels. The labels are integers corresponding to the intents in the dataset. For example, label 0 corresponds to the intent atis_flight.
+
+Now, you'll use the scikit-learn library to train a classifier on this same dataset. Specifically, you will fit and evaluate a support vector classifier.
+
+
+# Import SVC
+from sklearn.svm import SVC
+
+# Create a support vector classifier
+clf = SVC(C=1)
+
+# Fit the classifier using the training data
+clf.fit(X_train, y_train)
+
+# Predict the labels of the test set
+y_pred = clf.predict(X_test)
+
+# Count the number of correct predictions
+n_correct = 0
+for i in range(len(y_test)):
+    if y_pred[i] == y_test[i]:
+        n_correct += 1
+
+print("Predicted {0} correctly out of {1} test examples".format(n_correct, len(y_test)))
+
+
+
+Entity extraction
+
+Beyond keywords: Context
+
+
+Keywords don't work for entities you haven't seen before
+Use contextual clues:
+Spelling
+Capitalization
+Words occurring before & after
+Pattern recognition
+
+
+Pre-built Named Entity Recognition
+In [1]: import spacy
+In [2]: nlp = spacy.load('en')
+In [3]: doc = nlp("my friend Mary has worked at Google since 2009")
+In [4]: for ent in doc.ents:
+   ...:     print(ent.text, ent.label_)
+   ...:     
+Mary PERSON
+Google ORG
+2009 DATE
+
+Roles
+
+
+In [1]: pattern_1 = re.compile('.* from (.*) to (.*)')
+
+In [2]: pattern_2 = re.compile('.* to (.*) from (.*)')
+
+
+In [1]: doc = nlp('a flight to Shanghai from Singapore')
+In [2]: shanghai, singapore = doc[3], doc[5]
+In [3]: list(shanghai.ancestors) 
+Out[3]: [from, flight]
+
+In [4]: list(singapore.ancestors)
+Out[4]: [to, flight]
+
+
+Shopping example
+In [1]: doc = nlp("let's see that jacket in red and some blue jeans")
+In [2]: items = [doc[4], doc[10]]  # [jacket, jeans]
+
+In [3]: colors = [doc[6], doc[9]]  # [red, blue]
+In [4]: for color in colors:
+    ...:     for tok in color.ancestors:
+    ...:         if tok in items:
+    ...:             print("color {} belongs to item {}".format(color, tok))
+    ...:             break
+color red belongs to item jacket
+color blue belongs to item jeans
+
+
+Using spaCy's entity recogniser
+In this exercise you'll use spaCy's built-in entity recognizer to extract names, dates, and organizations from search queries. The spaCy library has been imported for you, and it's English model has been loaded as nlp.
+
+Your job is to define a function called extract_entities() which takes in a single argument message and returns a dictionary with the included entity types as keys, and the extracted entities as values. The included entity types are contained in a list called include_entities.
+
+
+# Define included entities
+include_entities = ['DATE', 'ORG', 'PERSON']
+
+# Define extract_entities()
+def extract_entities(message):
+    # Create a dict to hold the entities
+    ents = dict.fromkeys(include_entities)
+    # Create a spacy document
+    doc = nlp(message)
+    for ent in doc.ents:
+        if ent.label_ in include_entities:
+            # Save interesting entities
+            ents[ent.label_] = ent.text
+    return ents
+
+print(extract_entities('friends called Mary who have worked at Google since 2010'))
+print(extract_entities('people who graduated from MIT in 1999'))
+
+
+
+Assigning roles using spaCy's parser
+In this exercise you'll use spaCy's powerful syntax parser to assign roles to the entities in your users' messages. To do this, you'll define two functions, find_parent_item() and assign_colors(). In doing so, you'll use a parse tree to assign roles, similar to how Alan did in the video.
+
+Recall that you can access the ancestors of a word using its .ancestors attribute.
+
+# Create the document
+doc = nlp("let's see that jacket in red and some blue jeans")
+
+# Iterate over parents in parse tree until an item entity is found
+def find_parent_item(word):
+    # Iterate over the word's ancestors
+    for parent in word.ancestors:
+        # Check for an "item" entity
+        if entity_type(parent) == "item":
+            return parent.text
+    return None
+
+# For all color entities, find their parent item
+def assign_colors(doc):
+    # Iterate over the document
+    for word in doc:
+        # Check for "color" entities
+        if entity_type(word) == "color":
+            # Find the parent
+            item =  find_parent_item(word)
+            print("item: {0} has color : {1}".format(item, word))
+
+# Assign the colors
+assign_colors(doc)
+
+
+Robust language understanding with rasa NLU
+
+
+Rasa NLU
+Library for intent recognition & entity extraction
+Based on spaCy, scikit-learn, & other libraries
+Built in support for chatbot specific tasks
+
+In [1]: from rasa_nlu.converters import load_data
+In [2]: training_data = load_data("./training_data.json")
+In [3]: import json
+
+In [4]: print(json.dumps(data.training_examples[22], indent=2))
+Out[4]: {
+  "text": "i'm looking for a place in the north of town",
+  "intent": "restaurant_search",
+  "entities": [
+    {
+      "start": 31,
+      "end": 36,
+      "value": "north",
+      "entity": "location"
+    }
+  ]
+}
+
+Interpreters
+In [1]: message = "I want to book a flight to London"
+In [2]: interpreter.parse(message))
+Out[2]: {
+  "intent": {
+    "name": "flight_search",
+    "confidence": 0.9
+  },
+  "entities": [
+    {
+      "entity": "location",
+      "value": "London",
+      "start": 27,
+      "end": 33
+    }
+  ]
+}
+
+
+Rasa usage
+# Creating a model
+In [1]: from rasa_nlu.config import RasaNLUConfig
+
+In [2]: from rasa_nlu.model import Trainer
+In [3]: config = RasaNLUConfig(cmdline_args={"pipeline": "spacy_sklearn"})
+In [4]: trainer = Trainer(config)
+In [5]: interpreter = trainer.train(training_data)
+
+
+Rasa pipelines
+In [1]: spacy_sklearn_pipeline = [
+  "nlp_spacy",
+  "ner_crf",
+  "ner_synonyms", 
+  "intent_featurizer_spacy",
+  "intent_classifier_sklearn"  
+]
+
+# These two statements are identical:
+In [2]: RasaNLUConfig(
+            cmdline_args={"pipeline": spacy_sklearn_pipeline}
+        )
+Out[2]: <rasa_nlu.config.RasaNLUConfig at 0x10f60aa90>
+
+In [3]: RasaNLUConfig(
+            cmdline_args={"pipeline": "spacy_sklearn"}
+        )
+Out[3]: <rasa_nlu.config.RasaNLUConfig at 0x10f60aa20>
+
+
+Conditional random fields
+Machine Learning model, popular for named entity recognition
+can perform well even with small training data
+
+Handling typos
+
+
+In [1]: pipeline = [
+   ...:     "nlp_spacy",
+   ...:     "intent_featurizer_spacy",
+   ...:     "intent_featurizer_ngrams",
+   ...:     "intent_classifier_sklearn"
+   ...: ]
+   
+   
+Rasa NLU
+In this exercise you'll use Rasa NLU to create an interpreter, which parses incoming user messages and returns a set of entities. Your job is to train an interpreter using the MITIE entity recognition model in rasa NLU.
+
+# Import necessary modules
+from rasa_nlu.converters import load_data
+from rasa_nlu.config import RasaNLUConfig
+from rasa_nlu.model import Trainer
+
+# Create args dictionary
+args = {"pipeline": "spacy_sklearn"}
+
+# Create a configuration and trainer
+config = RasaNLUConfig(cmdline_args=args)
+trainer = Trainer(config)
+
+# Load the training data
+training_data = load_data("./training_data.json")
+
+# Create an interpreter by training the model
+interpreter = trainer.train(training_data)
+
+# Try it out
+print(interpreter.parse("I'm looking for a Mexican restaurant in the North of town"))
+
+
+Data-efficient entity recognition
+Most systems for extracting entities from text are built to extract 'Universal' things like names, dates, and places. But you probably don't have enough training data for your bot to make these systems perform well!
+
+In this exercise, you'll activate the MITIE entity recogniser inside rasa to extract restaurants-related entities using a very small amount of training data. A dictionary args has already been defined for you, along with a training_data object.
+
+
+# Import necessary modules
+from rasa_nlu.config import RasaNLUConfig
+from rasa_nlu.model import Trainer
+
+pipeline = [
+    "nlp_spacy",
+    "tokenizer_spacy",
+    "ner_crf"
+]
+
+# Create a config that uses this pipeline
+config = RasaNLUConfig(cmdline_args={"pipeline": pipeline})
+
+# Create a trainer that uses this config
+trainer = Trainer(config)
+
+# Create an interpreter by training the model
+interpreter = trainer.train(training_data)
+
+# Parse some messages
+print(interpreter.parse("show me Chinese food in the centre of town"))
+print(interpreter.parse("I want an Indian restaurant in the west"))
+print(interpreter.parse("are there any good pizza places in the center?"))
+
+
+Virtual Assistants and accessing data
+
+Virtual assistants
+	Common chatbot use cases:
+		Scheduling a meeting
+		Bookling a flight
+		Searching for a restaurant
+	Require information about the outside world
+	Need to interact with databases or APIs
+
+
+Basic SQL
+SELECT * from restaurants;
+ SELECT name, rating from restaurants;
+ SELECT name from restaurants WHERE area = 'center' AND pricerange = 'hi';
+ 
+SQLite with Python
+In [1]: import sqlite3
+In [2]: conn = sqlite3.connect('hotels.db')
+In [3]: c = conn.cursor()
+# Define area and price
+area, price = "south", "hi"
+t = (area, price)
+
+# Execute the query
+c.execute('SELECT * FROM hotels WHERE area=? AND price=?', t)
+Out[4]: <sqlite3.Cursor at 0x10cd5a960>
+In [5]: c.fetchall()
+Out[5]: [('Grand Hotel', 'hi', 'south', 5)]
+
+
+SQL injection
+# Bad Idea
+query = "SELECT name from restaurant where area='{}'".format(area)
+c.execute(query)
+# Better
+t = (area,price)
+c.execute('SELECT * FROM hotels WHERE area=? and price=?', t)
+
+
+Exploring a DB with natural language
+
+Parameters from text
+In [1]: message = "a cheap hotel in the north"
+In [2]: data = interpreter.parse(message)
+
+In [3]: data
+Out[3]: 
+{'entities': [{'end': '7', 'entity': 'price', 'start': 2, 'value': 'lo'},
+  {'end': 26, 'entity': 'location', 'start': 21, 'value': 'north'}],
+ 'intent': {'confidence': 0.9, 'name': 'hotel_search'}}
+In [4]: params = {}
+In [5]: for ent in data["entities"]:
+   ...:     params[ent["entity"]] = ent["value"]
+
+In [6]: params
+Out[6]: {'location': 'north', 'price': 'lo'}
+
+
+Creating a query from parameters
+In [7]: query = "select name FROM hotels"
+In [8]: filters = ["{}=?".format(k) for k in params.keys()]
+
+In [9]: filters
+Out[9]: ['price=?', 'location=?']
+In [10]: conditions = " and ".join(filters)
+
+In [11]: conditions
+Out[11]: 'price=? and location=?'
+In [12]: final_q = " WHERE ".join([query, conditions])
+In [13]: final_q
+Out[13]: 'SELECT name FROM hotels WHERE price=? and location=?'
+
+
+Responses
+In [1]: responses = [
+          "I'm sorry :( I couldn't find anything like that", 
+          "what about {}?", 
+          "{} is one option, but I know others too :)"
+        ]
+In [2]: results = c.fetchall()
+
+In [3]: len(results)
+Out[3]: 4
+In [4]: index = min(len(results), len(responses)-1)
+
+In [5]: responses[index]
+Out[5]: '{} is one option, but I know others too :)'
+
+
+Creating queries from parameters
+Now you're going to implement a more powerful function for querying the hotels database. The goal is to take arguments that can later be specified by other parts of your code.
+
+Specifically, your job here is to define a find_hotels() function which takes a single argument - a dictionary of column names and values - and returns a list of matching hotels from the database.
+
+# Define find_hotels()
+def find_hotels(params):
+    # Create the base query
+    query = 'SELECT * FROM hotels'
+    # Add filter clauses for each of the parameters
+    if len(params) > 0:
+        filters = ["{}=?".format(k) for k in params]
+        query += " WHERE " + " and ".join(filters)
+    # Create the tuple of values
+    t = tuple(params.values())
+    
+    # Open connection to DB
+    conn = sqlite3.connect('hotels.db')
+    # Create a cursor
+    c = conn.cursor()
+    # Execute the query
+    c.execute(query, t)
+    # Return the results
+    return c.fetchall()
+	
+
+Using your custom function to find hotels
+Here, you're going to put your find_hotels() function into action! Recall that it accepts a single argument, params, which is a dictionary of column names and values.
+
+
+# Create the dictionary of column names and values
+params = {"area": "south", "price":"lo"}
+
+# Find the hotels that match the parameters
+print(find_hotels(params))
+
+
+Creating SQL from natural language
+Now you'll write a respond() function which can handle messages like "I want an expensive hotel in the south of town" and respond appropriately according to the number of matching results in a database. This is important functionality for any database-backed chatbot.
+
+Your find_hotels() function from the previous exercises has already been defined for you, along with a rasa NLU interpreter object which can handle hotel queries and a list of responses, which you can explore in the Shell.
+
+# Define respond()
+def respond(message):
+    # Extract the entities
+    entities = interpreter.parse(message)["entities"]
+    # Initialize an empty params dictionary
+    params = {}
+    # Fill the dictionary with entities
+    for ent in entities:
+        params[ent["entity"]] = str(ent["value"])
+
+    # Find hotels that match the dictionary
+    results = find_hotels(params)
+    # Get the names of the hotels and index of the response
+    names = [r[0] for r in results]
+    n = min(len(results),3)
+    # Select the nth element of the responses array
+    return responses[n].format(*names)
+	
+print(respond("I want an expensive hotel in the south of town"))
+
+
+Incremental slot filling and negation
+
+Basic Memory
+In [1]: def respond(message, params):
+   ...:    # update params with entities in message
+   ...:    # run query
+   ...:    # pick response
+   ...:    return response, params
+
+# initialise params
+In [2]: params = {}
+
+# message comes in
+In [3]: response, params = respond(message, params)
+
+
+Catching negations
+In [1]: doc = nlp('not sushi, maybe pizza?')
+In [2]: indices = [1, 4]
+In [3]: ents, negated_ents = [], []
+In [4]:  start = 0
+   ...:  for i in indices:
+   ...:      phrase = "{}".format(doc[start:i])
+   ...:      if "not" in phrase or "n't" in phrase:
+   ...:          negated_ents.append(doc[i])
+   ...:      else:
+   ...:          ents.append(doc[i])
+   ...:      start = i
+   
+   
+Refining your search
+Now you'll write a bot that allows users to add filters incrementally, in case they don't specify all of their preferences in one message.
+
+To do this, initialize an empty dictionary params outside of your respond() function (unlike inside the function, like in the previous exercise). Your respond() function will take in this dictionary as an argument.
+
+# Define a respond function, taking the message and existing params as input
+def respond(message, params):
+    # Extract the entities
+    entities = interpreter.parse(message)["entities"]
+    # Fill the dictionary with entities
+    for ent in entities:
+        params[ent["entity"]] = str(ent["value"])
+
+    # Find the hotels
+    results = find_hotels(params)
+    names = [r[0] for r in results]
+    n = min(len(results), 3)
+    # Return the appropriate response
+    return responses[n].format(*names), params
+
+# Initialize params dictionary
+params = {}
+
+# Pass the messages to the bot
+for message in ["I want an expensive hotel", "in the north of town"]:
+    print("USER: {}".format(message))
+    response, params = respond(message, params)
+    print("BOT: {}".format(response))
+	
+	
+Basic negation
+Quite often you'll find your users telling you what they don't want - and that's important to understand! In general, negation is a difficult problem in NLP. Here we'll take a very simple approach that works for many cases.
+
+A list of tests called tests has been defined for you. Explore it in the Shell - you'll find that each test is a tuple consisting of:
+
+A string containing a message with entities
+A dictionary containing the entities as keys, and a Boolean saying whether they are negated as the key
+Your job is to define a function called negated_ents() which looks for negated entities in a message.
+
+
+# Define negated_ents()
+def negated_ents(phrase):
+    # Extract the entities using keyword matching
+    ents = [e for e in ["south", "north"] if e in phrase]
+    # Find the index of the final character of each entity
+    ends = sorted([phrase.index(e) + len(e) for e in ents])
+    # Initialise a list to store sentence chunks
+    chunks = []
+    # Take slices of the sentence up to and including each entitiy
+    start = 0
+    for end in ends:
+        chunks.append(phrase[start:end])
+        start = end
+    result = {}
+    # Iterate over the chunks and look for entities
+    for chunk in chunks:
+        for ent in ents:
+            if ent in chunk:
+                # If the entity is preceeded by a negation, give it the key False
+                if "not" in chunk or "n't" in chunk:
+                    result[ent] = False
+                else:
+                    result[ent] = True
+    return result  
+
+# Check that the entities are correctly assigned as True or False
+for test in tests:
+    print(negated_ents(test[0]) == test[1])
+
+	
+	
+Filtering with excluded slots
+Now you're going to put together some of the ideas from previous exercises, and allow users to tell your bot about what they do and what they don't want, split across multiple messages.
+
+The negated_ents() function has already been defined for you. Additionally, a slightly tweaked version of the find_hotels() function, which accepts a neg_params dictionary in addition to a params dictionary, has been defined.
+
+
+# Define the respond function
+def respond(message, params, neg_params):
+    # Extract the entities
+    entities = interpreter.parse(message)["entities"]
+    ent_vals = [e["value"] for e in entities]
+    # Look for negated entities
+    negated = negated_ents(message, ent_vals)
+    for ent in entities:
+        if ent["value"] in negated and negated[ent["value"]]:
+            neg_params[ent["entity"]] = str(ent["value"])
+        else:
+            params[ent["entity"]] = str(ent["value"])
+    # Find the hotels
+    results = find_hotels(params, neg_params)
+    names = [r[0] for r in results]
+    n = min(len(results),3)
+    # Return the correct response
+    return responses[n].format(*names), params, neg_params
+
+# Initialize params and neg_params
+params = {}
+neg_params = {}
+
+# Pass the messages to the bot
+for message in ["I want a cheap hotel", "but not in the north of town"]:
+    print("USER: {}".format(message))
+    response, params, neg_params = respond(message, params, neg_params)
+    print("BOT: {}".format(response))
+
+
+Why statefulness is key
+
+Stateful bots
+
+Implementing a state machine
+INIT = 0
+CHOOSE_COFFEE = 1
+ORDERED = 2
+Example rules:
+
+policy_rules = {
+    (INIT, "order"): (CHOOSE_COFFEE, "ok, Columbian or Kenyan?"),
+    (CHOOSE_COFFEE, "specify_coffee"): 
+    (ORDERED, "perfect, the beans are on their way!"),
+}
+
+Using the state machine
+In [1]: state = INIT
+
+In [2]: def respond(state, message):
+   ...:    (new_state, response) = policy_rules[(state, interpret(message))]
+   ...:    return new_state, response
+
+In [3]: def send_message(state, message):
+   ...:     new_state, response = respond(state, message)
+   ...:     return new_state
+
+In [4]: state = send_message(state, message)
+
+Form filling
+You'll often want your bot to guide users through a series of steps, such as when they're placing an order.
+
+In this exercise, you'll begin building a bot that lets users order coffee. They can choose between two types: Colombian, and Kenyan. If the user provides unexpected input, your bot will handle this differently depending on where they are in the flow.
+
+Your job here is to identify the appropriate state and next state based on the intents and response messages provided. For example, if the intent is "order", then the state changes from INIT to CHOOSE_COFFEE.
+
+A function send_message(policy, state, message) has already been defined for you. It takes the policy, the current state and message as arguments, and returns the new state as a result. Additionally, an interpret(message) function, similar to the one Alan described in the video, has been pre-defined for you.
+
+
+# Define the INIT state
+INIT = 0
+
+# Define the CHOOSE_COFFEE state
+CHOOSE_COFFEE = 1
+
+# Define the ORDERED state
+ORDERED = 2
+
+# Define the policy rules
+policy = {
+    (INIT, "order"): (CHOOSE_COFFEE, "ok, Columbian or Kenyan?"),
+    (INIT, "none"): (INIT, "I'm sorry - I'm not sure how to help you"),
+    (CHOOSE_COFFEE, "specify_coffee"): (ORDERED, "perfect, the beans are on their way!"),
+    (CHOOSE_COFFEE, "none"): (CHOOSE_COFFEE, "I'm sorry - would you like Colombian or Kenyan?"),
+}
+
+# Create the list of messages
+messages = [
+    "I'd like to become a professional dancer",
+    "well then I'd like to order some coffee",
+    "my favourite animal is a zebra",
+    "kenyan"
+]
+
+# Call send_message() for each message
+state = INIT
+for message in messages:    
+    state = send_message(policy, state, message)
+	
+	
+Asking contextual questions
+Sometimes your users need some help! They will have questions and expect the bot to help them.
+
+In this exercise, you'll allow users to ask the coffee bot to explain the steps to them. Like before, the answer they get will depend on where they are in the flow.
+
+# Define the states
+INIT=0 
+CHOOSE_COFFEE=1
+ORDERED=2
+
+# Define the policy rules dictionary
+policy_rules = {
+    (INIT, "ask_explanation"): (INIT, "I'm a bot to help you order coffee beans"),
+    (INIT, "order"): (CHOOSE_COFFEE, "ok, Columbian or Kenyan?"),
+    (CHOOSE_COFFEE, "specify_coffee"): (ORDERED, "perfect, the beans are on their way!"),
+    (CHOOSE_COFFEE, "ask_explanation"): (CHOOSE_COFFEE, "We have two kinds of coffee beans - the Kenyan ones make a slightly sweeter coffee, and cost $6. The Brazilian beans make a nutty coffee and cost $5.")    
+}
+
+# Define send_messages()
+def send_messages(messages):
+    state = INIT
+    for msg in messages:
+        state = send_message(state, msg)
+
+# Send the messages
+send_messages([
+    "what can you do for me?",
+    "well then I'd like to order some coffee",
+    "what do you mean by that?",
+    "kenyan"
+])
+
+
+Dealing with rejection
+What happens if you make a suggestion to your user, and they don't like it? Your bot will look really silly if it makes the same suggestion again right away.
+
+Here, you're going to modify your respond() function so that it accepts and returns 4 arguments:
+
+The user message as an argument, and the bot response as the first return value.
+A dictionary params including the entities the user has specified.
+A suggestions list. When passed to respond(), this should contain the suggestions made in the previous bot message. When returned by respond(), it should contain the current suggestions.
+An excluded list, which contains all of the results your user has already explicitly rejected.
+Your function should add the previous suggestions to the excluded list whenever it receives a "deny" intent. It should also filter out excluded suggestions from the response.
+
+# Define respond()
+def respond(message, params, prev_suggestions, excluded):
+    # Interpret the message
+    parse_data = interpret(message)
+    # Extract the intent
+    intent = parse_data["intent"]["name"]
+    # Extract the entities
+    entities = parse_data["entities"]
+    # Add the suggestion to the excluded list if intent is "deny"
+    if intent == "deny":
+        excluded.extend(prev_suggestions)
+    # Fill the dictionary with entities
+    for ent in entities:
+        params[ent["entity"]] = str(ent["value"])
+    # Find matching hotels
+    results = [
+        r 
+        for r in find_hotels(params, excluded) 
+        if r[0] not in excluded
+    ]
+    # Extract the suggestions
+    names = [r[0] for r in results]
+    n = min(len(results), 3)
+    suggestions = names[:2]
+    return responses[n].format(*names), params, suggestions, excluded
+
+# Initialize the empty dictionary and lists
+params, suggestions, excluded = {}, [], []
+
+# Send the messages
+for message in ["I want a mid range hotel", "no that doesn't work for me"]:
+    print("USER: {}".format(message))
+    response, params, suggestions, excluded = respond(message, params, suggestions, excluded)
+    print("BOT: {}".format(response))
+
+	
+	
+Asking questions & queuing answers
+
+Pending actions
+Policy returns two values: Selected action and pending_action
+pending_action is saved in the outer scope
+If we get a "yes" intent and there is a pending action, we execute it
+If we get a "no" intent, we wipe any pending actions
+
+Pending state transitions
+"I'd like to order some coffee"
+
+state = INIT
+action = "request_auth"
+pending_state = AUTHED
+
+
+Pending actions I
+You can really improve the user experience of your bot by asking them simple yes or no questions. One easy way to handle these follow-ups is to define pending actions which get executed as soon as the user says "yes", and wiped if the user says "no".
+
+In this exercise, you're going to define a policy function which takes the intent as it's sole argument, and returns two values: The next action to take, and a pending action. The policy function should return this value when a "yes" intent is returned, and should wipe the pending actions if a "no" intent is returned.
+
+Here, the interpret(message) function has been defined for you such that if "yes" is in the message, "affirm" is returned, and if "no" is in the message, then "deny" is returned.
+
+
+# Define policy()
+def policy(intent):
+    # Return "do_pending" if the intent is "affirm"
+    if intent == "affirm":
+        return "do_pending", None
+    # Return "Ok" if the intent is "deny"
+    if intent == "deny":
+        return "Ok", None
+    if intent == "order":
+        return "Unfortunately, the Kenyan coffee is currently out of stock, would you like to order the Brazilian beans?", "Alright, I've ordered that for you!"
+
+		
+		
+Pending actions II
+Having defined your policy function, it's now time to write a send_message() function which takes both a pending action and a message as its arguments and leverages the policy function to determine the bot's response.
+
+Your policy(intent) function from the previous exercise has been pre-loaded.
+
+# Define send_message()
+def send_message(pending, message):
+    print("USER : {}".format(message))
+    action, pending_action = policy(interpret(message))
+    if action == 'do_pending' and pending is not None:
+        print("BOT : {}".format(pending))
+    else:
+        print("BOT : {}".format(action))
+    return pending_action
+    
+# Define send_messages()
+def send_messages(messages):
+    pending = None
+    for msg in messages:
+        pending = send_message(pending, msg)
+
+# Send the messages
+send_messages([
+    "I'd like to order some coffee",
+    "ok yes please"
+])
+
+
+Pending state transitions
+You'll often need to briefly deviate from a flow, for example to authenticate a user, before returning.
+
+In these cases, it's often simpler - and easier to debug - to save some actions/states as pending rather than adding ever more complicated rules.
+
+Here, you're going to define a policy_rules dictionary, where the keys are tuples of the current state and the received intent, while the values are tuples of the next state, the bot's response, and a state for which to set a pending transition.
+
+# Define the states
+INIT=0
+AUTHED=1
+CHOOSE_COFFEE=2
+ORDERED=3
+
+# Define the policy rules
+policy_rules = {
+    (INIT, "order"): (INIT, "you'll have to log in first, what's your phone number?", AUTHED),
+    (INIT, "number"): (AUTHED, "perfect, welcome back!", None),
+    (AUTHED, "order"): (CHOOSE_COFFEE, "would you like Columbian or Kenyan?", None),    
+    (CHOOSE_COFFEE, "specify_coffee"): (ORDERED, "perfect, the beans are on their way!", None)
+}
+
+# Define send_messages()
+def send_messages(messages):
+    state = INIT
+    pending = None
+    for msg in messages:
+        state, pending = send_message(state, pending, msg)
+
+# Send the messages
+send_messages([
+    "I'd like to order some coffee",
+    "555-12345",
+    "kenyan"
+])
+
+
+
+Putting it all together I
+It's time to put everything together everything you've learned in the course by combining the coffee ordering bot with the eliza rules from chapter 1.
+
+To begin, you'll define a function called chitchat_response(), which calls the predefined function match_rule() from back in chapter 1. This returns a response if the message matched an eliza template, and otherwise, None.
+
+The eliza rules are contained in a dictionary called eliza_rules.
+
+# Define chitchat_response()
+def chitchat_response(message):
+    # Call match_rule()
+    response, phrase = match_rule(eliza_rules, message)
+    # Return none is response is "default"
+    if response == "default":
+        return None
+    if '{0}' in response:
+        # Replace the pronouns of phrase
+        phrase = replace_pronouns(phrase)
+        # Calculate the response
+        response = response.format(phrase)
+    return response
+
+	
+	
+Putting it all together II
+With your chitchat_response(message) function defined, the next step is to define a send_message() function which first calls chitchat_response(message), and only uses the coffee bot policy if there is no matching message.
+
+# Define send_message()
+def send_message(state, pending, message):
+    print("USER : {}".format(message))
+    response = chitchat_response(message)
+    if response is not None:
+        print("BOT : {}".format(response))
+        return state, None
+    
+    # Calculate the new_state, response, and pending_state
+    new_state, response, pending_state = policy_rules[(state, interpret(message))]
+    print("BOT : {}".format(response))
+    if pending is not None:
+        new_state, response, pending_state = policy_rules[pending]
+        print("BOT : {}".format(response))        
+    if pending_state is not None:
+        pending = (pending_state, interpret(message))
+    return new_state, pending
+
+# Define send_messages()
+def send_messages(messages):
+    state = INIT
+    pending = None
+    for msg in messages:
+        state, pending = send_message(state, pending, msg)
+
+# Send the messages
+send_messages([
+    "I'd like to order some coffee",
+    "555-12345",
+    "do you remember when I ordered 1000 kilos by accident?",
+    "kenyan"
+])  
+
+
+Frontiers of dialogue technology
+
+Seq2seq
+Machine translation
+Completely data driven, no hand-crafting
+Requires large amount of data
+No guarantee that output is coherent
+Difficult to integrate DB / API calls & other logic
+
+Grounded dialogue systems
+Systems you've built in this course: hand-crafted
+Seq2seq: Data driven
+ML based dialogue systems:
+NLU
+Dialogue state manager
+API logic
+Natural language response generator
+Human pretend to be a bot: "Wizard of Oz" technique
+Reinforcement learning
+Receives a reward for a successful conversation
+
+
+Generating text with neural networks
+In this final exercise of the course, you're going to generate text using a neural network trained on the scripts of every episode of The Simpsons. Specifically, you'll use a simplified version of the sample_text() function that Alan described in the video.
+
+It takes in two arguments, seed, and temperature. The seed argument is the initial sequence that the network uses to generate the subsequent text, while the temperature argument controls how risky the network is when generating text. At very low temperatures, it just repeats the most common combinations of letters, and at very high temperatures it generates complete gibberish. In order to ensure fast runtimes, the network in this exercise will only work for the subset of temperature values.
+
+After you finish this exercise, be sure to check out this tutorial by Alan in which he walks you through how to connect a chatbot to Facebook Messenger!
+
+
+# Feed the 'seed' text into the neural network
+seed = "i'm gonna punch lenny in the back of the"
+
+# Iterate over the different temperature values
+for temperature in [0.2, 0.5, 1.0, 1.2]:
+    print("\nGenerating text with riskiness : {}\n".format(temperature))
+    # Call the sample_text function
+    print(sample_text(seed, temperature))
+	
+	
+https://www.datacamp.com/community/tutorials/facebook-chatbot-python-deploy
+https://rasa.com/docs/nlu/
+https://rasa.com/docs/core/
+
