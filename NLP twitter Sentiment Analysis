@@ -1,0 +1,1103 @@
+Collecting data through the Twitter API
+
+
+Twitter API
+API: Application Programming Interace
+Method of accessing data
+Twitter APIs
+Search API
+Ads API
+Streaming API
+
+
+Using tweepy to collect data
+tweepy
+Python package for accessing Streaming API
+
+
+SListener
+from tweepy.streaming import StreamListener
+import time
+
+class SListener(StreamListener):
+    def __init__(self, api = None):
+        self.output  = open('tweets_%s.json' %
+            time.strftime('%Y%m%d-%H%M%S'), 'w')
+        self.api = api or API()
+    ...
+	
+	
+tweepy authentication
+from tweepy import OAuthHandler
+from tweepy import API 
+
+auth = OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = API(auth)
+
+Collecting data on keywords
+Now that we've set up the authentication, we can begin to collect Twitter data. Recall that with the Streaming API, we will be collecting real-time Twitter data based on either a sample or filtered by a keyword.
+
+In our example, we will collect data on any tweet mentioning #rstats or #python in the tweet text, username, or user description with the filter endpoint.
+
+The SListener module has already been defined and imported for you.
+
+
+Collecting data with tweepy
+from tweepy import Stream
+
+# Set up words to track
+keywords_to_track = ['#rstats', '#python']
+
+listen = SListener(api)
+stream = Stream(auth, listen)
+stream.sample()
+
+# Begin collecting data
+stream.filter(track = keywords_to_track)
+
+Understanding Twitter JSON
+
+
+Contents of Twitter JSON
+{
+        "created_at": "Thu Apr 19 14:25:04 +0000 2018",
+        "id": 986973961295720449,
+        "id_str": "986973961295720449",
+        "text": "Writing out the script of my @DataCamp class 
+            and I can't help but mentally read it back to myself in 
+            @hugobowne's voice.",    
+        "retweet_count": 0,
+        "favorite_count": 1,
+        ...
+}
+
+Child JSON objects
+{
+        "user": {
+            "id": 661613,
+            "name": "Alex Hanna, Data Witch",
+            "screen_name": "alexhanna",
+            "location": "Toronto, ON",
+            ...
+         }
+}
+
+Places, retweets/quoted tweets, and 140+ tweets
+place and coordinate
+contain geolocation
+extended_tweet
+tweets over 140 characters
+retweeted_status and quoted_status
+contain all tweet information of retweets and quoted tweets
+
+
+Accessing JSON
+import json
+
+tweet_json = open('tweet-example.json', 'r').read()
+tweet = json.loads(tweet_json)
+# Print tweet text
+print(tweet['text'])
+
+# Print tweet id
+print(tweet['id'])
+
+Child tweet JSON
+tweet['user']['screen_name']
+tweet['user']['name']
+tweet['user']['created_at']
+
+# Print user handle
+print(tweet['user']['screen_name'])
+
+# Print user follower count
+print(tweet['user']['followers_count'])
+
+# Print user location
+print(tweet['user']['location'])
+
+# Print user description
+print(tweet['user']['description'])
+
+Accessing retweet data
+Now we're going to work with a tweet JSON that contains a retweet. A retweet has the same structure as a regular tweet, except that it has another tweet stored in retweeted_status.
+
+The new tweet has been loaded as rt.
+
+# Print the text of the tweet
+print(rt['text'])
+
+# Print the text of tweet which has been retweeted
+print(rt['retweeted_status']['text'])
+
+# Print the user handle of the tweet
+print(rt['user']['screen_name'])
+
+# Print the user handle of the tweet which has been retweeted
+print(rt['retweeted_status']['user']['screen_name'])
+
+Processing Twitter Text
+
+
+Text in Twitter JSON
+tweet_json = open('tweet-example.json', 'r').read()
+tweet = json.loads(tweet_json)
+tweet['text']
+
+
+More than 140 characters
+tweet['extended_tweet']['full_text']
+
+Retweets and quoted tweets
+tweet['quoted_status']['extended_tweet']['full_text']
+
+Textual user information
+tweet['user']['description']
+tweet['user']['location']
+
+Flattening Twitter JSON
+extended_tweet['extended_tweet-full_text'] = 
+    extended_tweet['extended_tweet']['full_text']
+	
+Flattening Twitter JSON
+tweet_list = []
+with open('all_tweets.json', 'r') as fh:
+    tweets_json = fh.read().split("\n")
+    for tweet in tweets_json:
+        tweet_obj = json.loads(tweet)
+        if 'extended_tweet' in tweet_obj:
+            tweet_obj['extended_tweet-full_text'] = 
+                tweet_obj['extended_tweet']['full_text']     
+        ...
+    tweet_list.append(tweet)
+tweets = pd.DataFrame(tweet_list)
+
+
+Tweet Items and Tweet Flattening
+There are multiple fields in the Twitter JSON which contains textual data. In a typical tweet, there's the tweet text, the user description, and the user location. In a tweet longer than 140 characters, there's the extended tweet child JSON. And in a quoted tweet, there's the original tweet text and the commentary with the quoted tweet.
+
+For this exercise, you'll extract textual elements from a single quoted tweet in which the original tweet has more than 140 characters. Then, to analyze tweets at scale, we will want to flatten the tweet JSON into a single level. This will allow us to store the tweets in a DataFrame format.
+
+quoted_tweet has been loaded for you.
+
+# Print the tweet text
+print(quoted_tweet['text'])
+
+# Print the quoted tweet text
+print(quoted_tweet['quoted_status']['text'])
+
+# Print the quoted tweet's extended (140+) text
+print(quoted_tweet['quoted_status']['extended_tweet']['full_text'])
+
+# Print the quoted user location
+print(quoted_tweet['quoted_status']['user']['location'])
+
+# Store the user screen_name in 'user-screen_name'
+quoted_tweet['user-screen_name'] = quoted_tweet['user']['screen_name']
+
+# Store the quoted_status text in 'quoted_status-text'
+quoted_tweet['quoted_status-text'] = quoted_tweet['quoted_status']['text']
+
+# Store the quoted tweet's extended (140+) text in 
+# 'quoted_status-extended_tweet-full_text'
+quoted_tweet['quoted_status-extended_tweet-full_text'] = quoted_tweet['quoted_status']['extended_tweet']['full_text']
+
+
+A tweet flattening function
+We are typically interested in hundreds or thousands of tweets. For this purpose, it makes sense to define a function to flatten JSON file full of tweets. Let's call this function flatten_tweets(). We will use this function multiple times in this course and change it slightly as we deal with different types of data.
+
+json has been loaded for you.
+
+def flatten_tweets(tweets_json):
+    """ Flattens out tweet dictionaries so relevant JSON
+        is in a top-level dictionary."""
+    tweets_list = []
+    
+    # Iterate through each tweet
+    for tweet in tweets_json:
+        tweet_obj = json.loads(tweet)
+    
+        # Store the user screen name in 'user-screen_name'
+        tweet_obj['user-screen_name'] = tweet_obj['user']['screen_name']
+    
+        # Check if this is a 140+ character tweet
+        if 'extended_tweet' in tweet_obj:
+            # Store the extended tweet text in 'extended_tweet-full_text'
+            tweet_obj['extended_tweet-full_text'] = tweet_obj['extended_tweet']['full_text']
+    
+        if 'retweeted_status' in tweet_obj:
+            # Store the retweet user screen name in 'retweeted_status-user-screen_name'
+            tweet_obj['retweeted_status-user-screen_name'] = tweet_obj['retweeted_status']['user']['screen_name']
+
+            # Store the retweet text in 'retweeted_status-text'
+            tweet_obj['retweeted_status-text'] = tweet_obj['retweeted_status']['text']
+            
+        tweets_list.append(tweet_obj)
+    return tweets_list
+	
+Loading tweets into a DataFrame
+Now it's time to import data into a pandas DataFrame so we can analyze tweets at scale.
+
+We will work with a dataset of tweets which contain the hashtag '#rstats' or '#python'. This dataset is stored as a list of tweet JSON objects in data_science_json.
+
+# Import pandas
+import pandas as pd
+
+# Flatten the tweets and store in `tweets`
+tweets = flatten_tweets(data_science_json)
+
+# Create a DataFrame from `tweets`
+ds_tweets = pd.DataFrame(tweets)
+
+# Print out the first 5 tweets from this dataset
+print(ds_tweets['text'].values[0:5])
+
+
+Counting words
+
+
+Why count words?
+Basic step for automation of text analysis
+Can tell us how many times a relevant keyword is mentioned in documents in comparison to others
+In exercises: #rstats vs #python
+
+Counting with str.contains
+str.contains
+pandas Series string method
+Returns boolean Series
+case = False - Case insensitive search
+
+Companies dataset
+> import pandas as pd
+> tweets = pd.DataFrame(flatten_tweets(companies_json))
+> apple = tweets['text'].str.contains('apple', case = False)
+> print(np.sum(apple) / tweets.shape[0])
+
+Counting in multiple text fields
+> apple = tweets['text'].str.contains('apple', case = False) 
+
+> for column in ['extended_tweet-full_text',
+    'retweeted_status-text',
+    'retweeted_status-extended_tweet-full_text']:
+    apple = apple | tweets[column].str.contains('apple', case = False)
+> print(np.sum(apple) / tweets.shape[0])
+0.12866666666666668
+
+Finding keywords
+Counting known keywords is one of the first ways you can analyze text data in a Twitter dataset. In this dataset, you're going to count the number of times specific hashtags occur in a collection of tweets about data science. To this end, you're going to use the string methods in the pandas Series object to do this.
+
+pandas and numpy have been imported as pd and np, respectively. A more fully-featured flatten_tweets and data_science_json have also been loaded for you.
+
+# Flatten the tweets and store them
+flat_tweets = flatten_tweets(data_science_json)
+
+# Convert to DataFrame
+ds_tweets = pd.DataFrame(flat_tweets)
+
+# Find mentions of #python in 'text'
+python = ds_tweets['text'].str.contains('#python', case = False)
+
+# Print proportion of tweets mentioning #python
+print("Proportion of #python tweets:", np.sum(python) / ds_tweets.shape[0])
+
+
+Looking for text in all the wrong places
+Recall that relevant text may not only be in the main text field of the tweet. It may also be in the extended_tweet, the retweeted_status, or the quoted_status. We need to check all of these fields to make sure we've accounted for all the of the relevant text. We'll do this often so we're going to create a function which does this.
+
+The first two lines check if the main text field or the extended_tweet contain the text. You will need to check the rest.
+
+
+def check_word_in_tweet(word, data):
+    """Checks if a word is in a Twitter dataset's text. 
+    Checks text and extended tweet (140+ character tweets) for tweets,
+    retweets and quoted tweets.
+    Returns a logical pandas Series.
+    """
+    contains_column = data['text'].str.contains(word, case = False)
+    contains_column |= data['extended_tweet-full_text'].str.contains(word, case = False)
+    contains_column |= data['quoted_status-text'].str.contains(word, case = False) 
+    contains_column |= data['quoted_status-extended_tweet-full_text'].str.contains(word, case = False) 
+    contains_column |= data['retweeted_status-text'].str.contains(word, case = False) 
+    contains_column |= data['retweeted_status-extended_tweet-full_text'].str.contains(word, case = False)
+    return contains_column
+	
+
+Comparing #python to #rstats
+Now that we have a function to check whether or not the word is in the tweet in multiple places, we can deploy this across multiple words and compare them. Let's return to our example with the data science hashtag dataset. We want to see how many times that #rstats occurs compared to #python.
+
+The data science hashtag dataset ds_tweets has been loaded for you.
+
+
+# Find mentions of #python in all text fields
+python = check_word_in_tweet('#python', ds_tweets)
+
+# Find mentions of #rstats in all text fields
+rstats = check_word_in_tweet('#rstats', ds_tweets)
+
+# Print proportion of tweets mentioning #python
+print("Proportion of #python tweets:", np.sum(python) / ds_tweets.shape[0])
+
+# Print proportion of tweets mentioning #rstats
+print("Proportion of #rstats tweets:", np.sum(rstats) / ds_tweets.shape[0])
+
+
+Time Series
+
+
+Time series data
+                     sum person
+date                           
+2012-10-23 01:00:00  314  Obama
+2012-10-23 01:01:00  369  Obama
+2012-10-23 01:02:00  527  Obama
+2012-10-23 01:03:00  589  Obama
+2012-10-23 01:04:00  501  Obama
+...
+
+Converting datetimes
+> print(tweets['created_at'])
+0       Sat Jan 27 18:36:21 +0000 2018
+1       Sat Jan 27 18:24:02 +0000 2018
+2       Sat Jan 27 18:09:14 +0000 2018
+...
+> tweets['created_at'] = pd.to_datetime(tweets['created_at'])
+> print(tweets['created_at'])
+0      2018-01-27 18:36:21
+1      2018-01-27 18:24:02
+2      2018-01-27 18:09:14
+...
+> tweets = tweets.set_index('created_at')
+
+Keywords as time series metrics
+> tweets['google'] = check_word_in_tweet('google', tweets)
+> print(tweets['google'])
+created_at
+2018-01-27 18:36:21    False
+2018-01-27 18:24:02    False
+2018-01-27 18:30:12    False
+2018-01-27 18:12:37     True
+2018-01-27 18:11:06     True
+....
+> print(np.sum(tweets['google']))
+247
+
+Generating keyword means
+> mean_google = tweets['google'].resample('1 min').mean()
+> print(mean_google)
+created_at
+2018-01-27 18:07:00    0.085106
+2018-01-27 18:08:00    0.285714
+2018-01-27 18:09:00    0.161290
+2018-01-27 18:10:00    0.222222
+2018-01-27 18:11:00    0.169231
+
+
+Plotting keyword means
+import matplotlib.pyplot as plt 
+
+plt.plot(means_facebook.index.minute, 
+    means_facebook, color = 'blue')
+plt.plot(means_google.index.minute, 
+    means_google, color = 'green')
+plt.xlabel('Minute')
+plt.ylabel('Frequency')
+plt.title('Company mentions')
+plt.legend(('facebook', 'google'))
+plt.show()
+
+
+Creating time series data frame
+Time series data is used when we want to analyze or explore variation over time. This is useful when exploring Twitter text data if we want to track the prevalence of a word or set of words.
+
+The first step in doing this is converting the DataFrame into a format which can be handled using pandas time series methods. That can be done by converting the index to a datetime type.
+
+# Print created_at to see the original format of datetime in Twitter data
+print(ds_tweets['created_at'].head())
+
+# Convert the created_at column to np.datetime object
+ds_tweets['created_at'] = pd.to_datetime(ds_tweets['created_at'])
+
+# Print created_at to see new format
+print(ds_tweets['created_at'].head())
+
+# Set the index of ds_tweets to created_at
+ds_tweets = ds_tweets.set_index('created_at')
+
+
+Generating mean frequency
+We need to produce a metric which can be graphed over time. Our function check_word_in_tweet() returns a boolean Series. Remember that the boolean value True == 1, so we can produce a column for each keyword we're interested in and use it to understand its over time prevalence.
+
+
+# Create a python column
+ds_tweets['python'] = check_word_in_tweet('#python', ds_tweets)
+
+# Create an rstats column
+ds_tweets['rstats'] = check_word_in_tweet('#rstats', ds_tweets)
+
+Plotting mean frequency
+Lastly, we'll create a per-day average of the mentions of both hashtags and plot them across time. We'll first create proportions from the two boolean Series by the day, then we'll plot them.
+
+matplotlib.pyplot has been imported as plt and ds_tweets has been loaded for you.
+
+
+# Average of python column by day
+mean_python = ds_tweets['python'].resample('1 d').mean()
+
+# Average of rstats column by day
+mean_rstats = ds_tweets['rstats'].resample('1 d').mean()
+
+# Plot mean python/rstats by day
+plt.plot(mean_python.index.day, mean_python, color = 'green')
+plt.plot(mean_rstats.index.day, mean_rstats, color = 'blue')
+
+# Add labels and show
+plt.xlabel('Day'); plt.ylabel('Frequency')
+plt.title('Language mentions over time')
+plt.legend(('#python', '#rstats'))
+plt.show()
+
+
+Sentiment Analysis
+
+
+Understanding sentiment analysis
+Method
+Counting positive/negative words in the document
+Assessing positivity/negativity of the whole document
+Uses
+Analyzing reactions to a company, product, politician, or policy
+
+
+Sentiment analysis tools
+VADER SentimentIntensityAnalyzer()
+Part of Natural Language Toolkit (nltk)
+Good for short texts like tweets
+Measures sentiment of particular words (e.g. angry, happy)
+Also considers sentiment of emoji (😭😅) and capitalization (Nice vs NICE)
+
+
+Implementing sentiment analysis
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+sid = SentimentIntensityAnalyzer()
+sentiment_scores = tweets['text'].apply(sid.polarity_scores)
+
+
+Interpreting sentiment scores
+Reading tweets as part of the process
+Does it have face validity? (i.e. does this match my idea of what it means to be positive or negative?)
+
+
+Interpreting sentiment scores
+tweet1 = 'RT @jeffrey_heer: Thanks for inviting me, and thanks for the 
+lovely visualization of the talk! ...'
+print(sid.polarity_scores(tweet1))
+{'neg': 0.0, 'neu': 0.496, 'pos': 0.504, 'compound': 0.9041}
+ tweet2 = 'i am having problems with google play music'
+print(sid.polarity_scores(tweet2)
+{'neg': 0.267, 'neu': 0.495, 'pos': 0.238, 'compound': -0.0772}
+
+
+Generating sentiment averages
+sentiment = sentiment_scores.apply(lambda x: x['compound'])
+sentiment_fb = sentiment[check_word_in_tweet('facebook', tweets)]
+                    .resample('1 min').mean()
+sentiment_gg = sentiment[check_word_in_tweet('google', tweets)]
+                    .resample('1 min').mean()
+					
+					
+Plotting sentiment scores
+plt.plot(sentiment_fb.index.minute, 
+       sentiment_fb, color = 'blue')
+plt.plot(sentiment_g.index.minute, 
+       sentiment_gg, color = 'green')
+
+plt.xlabel('Minute')
+plt.ylabel('Sentiment')
+plt.title('Sentiment of companies')
+plt.legend(('Facebook', 'Google'))
+plt.show()
+
+
+Loading VADER
+Sentiment analysis provides us a small glimpse of the meaning of texts with a rather directly interpretable method. While it has its limitations, it's a good place to begin working with textual data. There's a number of out-of-the-box tools in Python we can use for sentiment analysis.
+
+ds_tweets with the datetime index has been loaded for you.
+
+# Load SentimentIntensityAnalyzer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+# Instantiate new SentimentIntensityAnalyzer
+sid = SentimentIntensityAnalyzer()
+
+# Generate sentiment scores
+sentiment_scores = ds_tweets['text'].apply(sid.polarity_scores)
+
+
+
+Calculating sentiment scores
+A rough measure of sentiment towards a particular hashtag is to measure average sentiment for tweets mentioning a particular hashtag. It's also possible that other things are happening in that tweet, so it's important to inspect both text as well as metrics generated by automated text methods.
+
+
+# Print out the text of a positive tweet
+print(ds_tweets[sentiment > 0.6]['text'].values[0])
+
+# Print out the text of a negative tweet
+print(ds_tweets[sentiment < -0.6]['text'].values[0])
+
+# Generate average sentiment scores for #python
+sentiment_py = sentiment[ check_word_in_tweet('#python', ds_tweets) ].resample('1 d').mean()
+
+# Generate average sentiment scores for #rstats
+sentiment_r = sentiment[ check_word_in_tweet('#rstats', ds_tweets) ].resample('1 d').mean()
+
+
+Plotting sentiment scores
+Lastly, let's plot the sentiment of each hashtag over time. This is largely similar to plotting the prevalence of tweets.
+
+
+# Import matplotlib
+import matplotlib.pyplot as plt
+
+# Plot average #python sentiment per day
+plt.plot(sentiment_py.index.day, sentiment_py, color = 'green')
+
+# Plot average #rstats sentiment per day
+plt.plot(sentiment_r.index.day, sentiment_r, color = 'blue')
+
+plt.xlabel('Day')
+plt.ylabel('Sentiment')
+plt.title('Sentiment of data science languages')
+plt.legend(('#python', '#rstats'))
+plt.show()
+
+
+Twitter Networks
+
+Importing and visualizing Twitter networks
+
+
+Importing a retweet network
+import networkx as nx
+## ... flatten and convert JSON
+G_rt = nx.from_pandas_edgelist(
+                        tweets,
+                        source = 'user-screen_name', 
+                        target = 'retweeted_status-user-screen_name',
+                        create_using = nx.DiGraph())
+						
+						
+Importing a quoted network
+import networkx as nx
+
+## ... flatten and convert JSON
+G_quote = nx.from_pandas_edgelist(
+                           tweets,
+                           source = 'user-screen_name', 
+                           target = 'quoted_status-user-screen_name',
+                           create_using = nx.DiGraph())
+						   
+						   
+Importing a reply network
+import networkx as nx
+
+## ... flatten and convert JSON
+
+G_reply = nx.from_pandas_edgelist(
+                           tweets,
+                           source = 'user-screen_name', 
+                           target = 'in_reply_to_screen_name'
+                           create_using = nx.DiGraph())
+						   
+						   
+Visualization
+nx.draw_networkx(T)
+plt.axis('off')
+
+
+Visualization options
+sizes = 
+    [x[1]*100 for x in T.degree()]
+nx.draw_networkx(T, 
+                node_size = sizes, 
+                with_labels = False, 
+                alpha = 0.6,
+                width = 0.3)
+plt.axis('off')
+
+
+Circular layout
+circle_pos =
+nx.circular_layout(T)
+nx.draw_networkx(T,
+                pos = circle_pos,
+                node_size = sizes, 
+                with_labels = False, 
+                alpha = 0.6,
+                width = 0.3)
+plt.axis('off')
+
+
+Creating retweet network
+Social media is, by nature, networked data. Twitter networks manifest in multiple ways. One of the most important types of networks that appear in Twitter are retweet networks. We can represent these as directed graphs, with the retweeting user as the source and the retweeted person as the target. With Twitter data in our flattened DataFrame, we can import these into networkx and create a retweet network.
+
+For this exercise and the rest of this course we'll be using a dataset based on the 2018 State of the Union speech given by Donald Trump. Those tweets have been loaded for you in sotu_retweets.
+
+
+# Import networkx
+import networkx as nx
+
+# Create retweet network from edgelist
+G_rt = nx.from_pandas_edgelist(
+    sotu_retweets,
+    source = 'user-screen_name', 
+    target = 'retweeted_status-user-screen_name',
+    create_using = nx.DiGraph())
+    
+# Print the number of nodes
+print('Nodes in RT network:', len(G_rt.nodes()))
+
+# Print the number of edges
+print('Edges in RT network:', len(G_rt.edges()))
+
+
+Creating reply network
+Reply networks have a markedly different structure to retweet networks. While retweet networks often signal agreement, replies can signal discussion, deliberation, and disagreement. The network properties are the same, however: the network is directed, the source is the replier and the target is the user who is being replied to.
+
+For this exercise we are going to create a reply network from a slightly different sample of State of the Union tweets. Those tweets have been loaded for you in sotu_replies.
+
+
+# Import networkx
+import networkx as nx
+
+# Create reply network from edgelist
+G_reply = nx.from_pandas_edgelist(
+    sotu_replies,
+    source = 'user-screen_name', 
+    target = 'in_reply_to_screen_name',
+    create_using = nx.DiGraph())
+    
+# Print the number of nodes
+print('Nodes in reply network:', len(G_reply.nodes()))
+
+# Print the number of edges
+print('Edges in reply network:', len(G_reply.edges()))
+
+
+Visualizing retweet network
+Visualizing retweets networks is an important exploratory data analysis step because it allows us to visually inspect the structure of the network, understand if there is any user that has disproportionate influence, and if there are different spheres of conversation.
+
+A retweet network visualized with a force directed algorithm may look something like this.
+
+Retweet network visualization
+
+We are going to use a layout which runs quicker to see the plot, but the syntax is nearly the same.
+
+networkx has been imported as nx, and the network has been loaded in G_rt for you.
+
+
+# Create random layout positions
+pos = nx.random_layout(G_rt)
+
+# Create size list
+sizes = [x[1] for x in G_rt.degree()]
+
+# Draw the network
+nx.draw_networkx(G_rt, pos, 
+    with_labels = False, 
+    node_size = sizes,
+    width = 0.1, alpha = 0.7,
+    arrowsize = 2, linewidths = 0)
+
+# Turn axis off and show
+plt.axis('off'); plt.show()
+
+
+Centrality: node importance
+Centrality
+Measures of importance of a node in a network
+Several different ideas of "importance"
+
+
+Degree Centrality
+Degree
+
+ nx.in_degree_centrality(T)
+nx.out_degree_centrality(T)
+
+Degree
+
+Number of edges that are connected to node
+Two types of degrees in a directed network
+In-degree - edge going into node
+Out-degree - edge going out of a node
+
+
+Betweenness Centrality
+How many shortest paths between two nodes pass through this node
+Importance as a network broker
+
+nx.betweenness_centrality(T)
+
+
+Printing highest centrality
+bc = nx.betweenness_centrality(T)
+betweenness = pd.DataFrame(
+         list(bc.items()), 
+         columns = ['Name', 'Cent'])
+print(betweenness.sort_values(
+         'Cent', 
+         ascending = False).head())
+    Name  Centrality
+0      0    0.232540
+23    23    0.158514
+7      7    0.158514
+15    15    0.158514
+21    21    0.157588
+
+
+The Ratio
+degree_rt = pd.DataFrame(list(G_rt.in_degree()), 
+                         columns = ['screen_name', 'degree'])
+degree_reply = pd.DataFrame(list(G_reply.in_degree()),
+                            columns = ['screen_name', 'degree'])
+ratio = degree_rt.merge(degree_reply, 
+                        on = 'screen_name', 
+                        suffixes = ('_rt', '_reply'))
+ratio['ratio'] = ratio['degree_reply'] / ratio['degree_rt']
+
+
+In-degree centrality
+Centrality is a measure of importance of a node to a network. There are many different types of centrality and each of them has slightly different meaning in Twitter networks. We are first focusing on degree centrality, since its calculation is straightforward and has an intuitive explanation.
+
+For directed networks like Twitter, we need to be careful to distinguish between in-degree and out-degree centrality, especially in retweet networks. In-degree centrality for retweet networks signals users who are getting many retweets.
+
+networkx has been imported as nx. Also, the networks G_rt and G_reply and column_names = ['screen_name', 'degree_centrality'] have been loaded for you
+
+
+
+# Generate in-degree centrality for retweets 
+rt_centrality = nx.in_degree_centrality(G_rt)
+
+# Generate in-degree centrality for replies 
+reply_centrality = nx.in_degree_centrality(G_reply)
+
+# Store centralities in DataFrame
+rt = pd.DataFrame(list(rt_centrality.items()), columns = column_names)
+reply = pd.DataFrame(list(reply_centrality.items()), columns = column_names)
+
+# Print first five results in descending order of centrality
+print(rt.sort_values('degree_centrality', ascending = False).head())
+
+# Print first five results in descending order of centrality
+print(reply.sort_values('degree_centrality', ascending = False).head())
+
+
+
+Betweenness Centrality
+Betweenness centrality for retweet and reply networks signals users who bridge between different Twitter communities. These communities may be tied together by topic or ideology.
+
+networkx has been imported as nx. The networks G_rt and G_reply, and column_names = ['screen_name', 'betweenness_centrality'] have been loaded for you.
+
+
+# Generate betweenness centrality for retweets 
+rt_centrality = nx.betweenness_centrality(G_rt)
+
+# Generate betweenness centrality for replies 
+reply_centrality = nx.betweenness_centrality(G_reply)
+
+# Store centralities in data frames
+rt = pd.DataFrame(list(rt_centrality.items()), columns = column_names)
+reply = pd.DataFrame(list(reply_centrality.items()), columns = column_names)
+
+# Print first five results in descending order of centrality
+print(rt.sort_values('betweenness_centrality', ascending = False).head())
+
+# Print first five results in descending order of centrality
+print(reply.sort_values('betweenness_centrality', ascending = False).head())
+
+
+Ratios
+While not strictly a measure of importance to a network, the idea of being "ratio'd" is a network measure which is particular to Twitter and is typically used to judge the unpopularity of a tweet. "The Ratio," as it is called, is calculated by taking the number of replies and dividing it by the number of retweets. For our purposes, it makes conceptual sense to take only the in-degrees of both the retweet and reply networks.
+
+The networks G_rt and G_reply, and column_names = ['screen_name', 'degree'] have been loaded for you.
+
+
+
+
+# Calculate in-degrees and store in DataFrame
+degree_rt = pd.DataFrame(list(G_rt.in_degree()), columns = column_names)
+degree_reply = pd.DataFrame(list(G_reply.in_degree()), columns = column_names)
+
+# Merge the two DataFrames on screen name
+ratio = degree_rt.merge(degree_reply, on = 'screen_name', suffixes = ('_rt', '_reply'))
+
+# Calculate the ratio
+ratio['ratio'] = ratio['degree_reply'] / ratio['degree_rt']
+
+# Exclude any tweets with less than 5 retweets
+ratio = ratio[ratio['degree_rt'] >= 5]
+
+# Print out first five with highest ratio
+print(ratio.sort_values('ratio', ascending = False).head())
+
+
+
+Why maps?
+Warriors vs. Lakers
+
+Geographical scope
+Participants or observers?
+Differentiating tweets
+For or against?
+
+
+How Twitter gets location data
+Sherman county
+
+Location is device-dependent
+In practice, aggregate geographical to county, state-level
+
+
+Beware selection biases!
+Warning: only 1-3% of Twitter data have geographical data
+Limits the generalizability of inference
+
+
+Types of Geographical Data available in Twitter
+Twitter text (most imprecise)
+User location
+Bounding boxes
+Coordinates and points (most precise)
+
+
+Geographical Data in Twitter JSON
+
+User-defined location
+User-defined location
+
+> print(tweet['user']['location'])
+Bay Area
+
+
+place JSON
+Bounding box illustration
+
+> print(tweet['place'])
+{'attributes': {},
+ 'bounding_box': {'coordinates': 
+  [[[-80.47611, 37.185195],
+    [-80.47611, 37.273387],
+    [-80.381618, 37.273387],
+    [-80.381618, 37.185195]]],
+  'type': 'Polygon'},
+ 'country': 'United States',
+ 'country_code': 'US',
+ 'full_name': 'Blacksburg, VA',
+ 'name': 'Blacksburg',
+ 'place_type': 'city',
+ ...}
+ 
+ 
+ Calculating the centroid
+Bounding box illustration
+
+coordinates = [
+    [-80.47611, 37.185195],
+    [-80.47611, 37.273387],
+    [-80.381618, 37.273387],
+    [-80.381618, 37.185195]]
+
+longs = np.unique( [x[0] for x 
+    in coordinates] )
+lats  = np.unique( [x[1] for x 
+    in coordinates] )
+
+central_long = np.sum(longs) / 2
+central_lat  = np.sum(lats) / 2
+
+
+coordinates JSON
+Single coordinate place
+
+> print(tweet['coordinates'])
+{'type': 'Point', 
+'coordinates': [-72.2833, 21.7833]}
+
+
+Accessing user-defined location
+In the slides, we saw that we could obtain user location via user-generated text, including the tweet itself and the location field in the user's description. These are the two most imprecise methods of obtaining user location, but also possibly more readily available.
+
+In this exercise, you're going extract the user-defined location from a single example tweet as well as a large set of tweets. We've added another line to our flatten_tweets() function which will allow you to access user-defined location within the data frame.
+
+tweet_obj['user-location'] = tweet_obj['user']['location']
+In addition, the single tweet in JSON format tweet_json and the State of the Union tweets in JSON format tweets_sotu_json have been loaded for you.
+
+
+# Print out the location of a single tweet
+print(tweet_json['user']['location'])
+
+# Flatten and load the SOTU tweets into a dataframe
+tweets_sotu = pd.DataFrame(flatten_tweets(tweets_sotu_json))
+
+# Print out top five user-defined locations
+print(tweets_sotu['user-location'].value_counts().head())
+
+
+Accessing bounding box
+Most tweets which have coordinate-level geographical information attached to them typically come in the form of a bounding box. Bounding boxes are a set of four longitudinal/latitudinal coordinates which denote a particular area in which the user can be located. The bounding box is located in the place value of the Twitter JSON.
+
+The dataset has been loaded for you as a DataFrame in tweets_sotu.
+
+
+def getBoundingBox(place):
+    """ Returns the bounding box coordinates."""
+    return place['bounding_box']['coordinates']
+
+# Apply the function which gets bounding box coordinates
+bounding_boxes = tweets_sotu['place'].apply(getBoundingBox)
+
+# Print out the first bounding box coordinates
+print(bounding_boxes.values[0])
+
+
+Calculating the centroid
+The bounding box can range from a city block to a whole state or even country. For simplicity's sake, one way we can deal with handling these data is by translating the bounding box into what's called a centroid, or the center of the bounding box. The calculation of the centroid is straight forward -- we calculate the midpoints of the lines created by the latitude and longitudes.
+
+numpy has been imported as np.
+
+
+def calculateCentroid(place):
+    """ Calculates the centroid from a bounding box."""
+    # Obtain the coordinates from the bounding box.
+    coordinates = place['bounding_box']['coordinates'][0]
+    
+    longs = np.unique( [x[0] for x in coordinates] )
+    lats  = np.unique( [x[1] for x in coordinates] )
+    
+    if len(longs) == 1 and len(lats) == 1:
+        # return a single coordinate
+        return (longs[0], lats[0])
+    elif len(longs) == 2 and len(lats) == 2:
+        # If we have two longs and lats, we have a box.
+        central_long = np.sum(longs) / 2
+        central_lat  = np.sum(lats) / 2
+    else:
+        raise ValueError("Non-rectangular polygon not supported.")
+
+    return (central_long, central_lat)
+
+# Calculate the centroids of place     
+centroids = tweets_sotu['place'].apply(calculateCentroid)
+
+
+Creating Twitter maps
+
+
+Introducing Basemap
+Contour example in Basemap
+
+Library for plotting two-dimensional maps
+Built on top of matplotlib
+Converts coordinates into map projections
+
+
+Beginning with Basemap
+from mpl_toolkits.basemap 
+    import Basemap
+import matplotlib.pyplot as plt
+	
+m = Basemap(projection='merc',
+            llcrnrlat = -35.62,
+            llcrnrlon = -17.29,
+            urcrnrlat = 37.73,
+            urcrnrlon = 51.39)
+# Draw continents in white, 
+# coastlines and countries in gray
+m.fillcontinents(color='white')
+m.drawcoastlines(color='gray')
+m.drawcountries(color='gray')
+
+# Draw the states and show the plot
+m.drawstates(color='gray')
+plt.show()
+
+
+
+Plotting points
+africa = pd.read_csv('africa.csv')
+longs  = africa['CapitalLongtiude']
+lats   = africa['CapitalLatitude']
+m = Basemap(...)
+m.fillcontinents(color='white', 
+    zorder = 0)
+m.drawcoastlines(color='gray')
+m.drawcountries(color='gray')
+m.scatter(longs.values, 
+          lats.values, 
+          latlon = True, 
+          alpha = 0.7)
+		  
+		  
+		  
+Using color
+africa = pd.read_csv('africa.csv')
+longs  = africa['CapitalLongtiude']
+lats   = africa['CapitalLatitude']
+arabic = africa['Arabic']
+
+m = Basemap(...)
+m.fillcontinents(color='white', 
+    zorder = 0)
+m.drawcoastlines(color='gray')
+m.drawcountries(color='gray')
+m.scatter(longs.values, 
+          lats.values, 
+          latlon = True, 
+          c = arabic.values,
+          cmap = 'Paired',
+          alpha = 1)
+		  
+Plotting centroid coordinates
+Because we can't plot whole bounding boxes, we summarize the bounding box location into a single point called a centroid. Plotting these on a Basemap map is straightforward. Once we calculate the centroids, we separate the longitudes and latitudes, then pass to the .scatter() method.
+
+The Basemap object m has been created for you. The dataset tweets_sotu and function calculateCentroid() have also been loaded.
+
+# Calculate the centroids for the dataset 
+# and isolate longitudue and latitudes
+centroids = tweets_sotu['place'].apply(calculateCentroid)
+lon = [x[0] for x in centroids]
+lat = [x[1] for x in centroids]
+
+# Draw continents, coastlines, countries, and states
+m.fillcontinents(color='white', zorder = 0)
+m.drawcoastlines(color='gray')
+m.drawcountries(color='gray')
+m.drawstates(color='gray')
+
+# Draw the points and show the plot
+m.scatter(lon, lat, latlon = True, alpha = 0.7)
+plt.show()
+
+
+Coloring by sentiment
+We want to be able to differentiate by place with our Twitter analysis. One distinguishing factor between places is how the State of the Union speech was received. For this purpose, we'll use the sentiment analysis we covered in Chapter 2 to evaluate how the speech was received in different parts of the country.
+
+The tweets_sotu dataset has been loaded for you, as well as lon, lat, and the Basemap map m. SentimentIntensityAnalyzer is instantiated as sid in your workspace.
+
+
+# Generate sentiment scores
+sentiment_scores = tweets_sotu['text'].apply(sid.polarity_scores)
+
+# Isolate the compound element
+sentiment_scores = [x['compound'] for x in sentiment_scores]
+
+# Draw the points
+m.scatter(lon, lat, latlon = True, 
+           c = sentiment_scores,
+           cmap = 'coolwarm', alpha = 0.7)
+
+# Show the plot
+plt.show()
+
+
