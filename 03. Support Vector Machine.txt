@@ -21,7 +21,7 @@ svm = SVC()
 #Hyperparameter tuning
 from sklearn.model_selection import GridSearchCV
 parameter = {'gamma': [0.00001, 0.0001, 0.001, 0.01, 0.1], 'c': [0.1, 1, 10], 'kernel': ['linear', 'rbf']}
-svm_searcher = gridsearchCV(svm, parameters)
+svm_searcher = gridsearchCV(svm, parameters, cv=5)
 svm_searcher.fit(x, y)
 svm_searcher.best_params_
 svm_searcher.best_score_
